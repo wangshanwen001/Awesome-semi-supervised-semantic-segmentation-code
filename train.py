@@ -16,7 +16,7 @@ from utils.dataloader_unlabel import  DeeplabDatasetUnlabel, deeplab_dataset_col
 from utils.dataloader import DeeplabDataset, deeplab_dataset_collate
 from utils.utils import show_config
 
-from utils.utils_unimatch import fit_one_epoch
+from semi.semi_unimatch import fit_one_epoch
 
 if __name__ == "__main__":
 
