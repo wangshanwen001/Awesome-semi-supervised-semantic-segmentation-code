@@ -30,7 +30,7 @@ def fit_one_epoch(model_train, model,model_train_unlabel,ema_model, loss_history
         with torch.no_grad():
             weights = torch.from_numpy(cls_weights)
             if cuda:
-                imgs_unlabel_s, lam = SA(imgs_unlabel, imgs_label)
+                imgs_unlabel_s = SA(imgs_unlabel, imgs_label)
                 imgs_label = imgs_label.cuda(local_rank)
                 imgs_unlabel    = imgs_unlabel.cuda(local_rank)
                 imgs_unlabel_s = imgs_unlabel_s.cuda(local_rank)
