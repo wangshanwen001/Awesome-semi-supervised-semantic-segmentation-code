@@ -1,13 +1,23 @@
 import os
+
 import torch
 from nets.deeplabv3_training import (CE_Loss, Dice_loss, Focal_Loss,DiceLoss,softmax_mse_loss,
                                      weights_init)
 from tqdm import tqdm
+
 from utils.utils import get_lr
+import cv2
 from utils.utils_metrics import f_score
+import numpy as np
 from torch.nn import functional as F
+from PIL import Image
+import random
+from torch.nn import Softmax,LayerNorm
 from torch import  nn
-from utils.dataloader_unlabel import SA
+from  itertools import cycle
+import torch
+import torchvision.transforms as transforms
+from utils.dataloader_unlabel import cutmix_images,SA
 
 def update_ema_variables(model, ema_model, alpha, global_step):
     alpha = min(1 - 1 / (global_step + 1), alpha)
@@ -24,12 +34,14 @@ def sigmoid_rampup(current, rampup_length):
         return float(np.exp(-5.0 * phase * phase))
 
 def get_current_consistency_weight(epoch):
-    return 3 * sigmoid_rampup(epoch, 150)
+    return 10 * sigmoid_rampup(epoch, 150)
 
 def fit_one_epoch(model_train, model,model_train_unlabel,ema_model, loss_history, eval_callback, optimizer, epoch, epoch_step, epoch_step_val,gen, gen_unlabel,gen_val, Epoch, cuda, dice_loss, focal_loss, cls_weights, num_classes, \
     fp16, scaler, save_period, save_dir, local_rank=0):
     total_loss      = 0
     suloss_item=0
+    consistency_loss_item=0
+    attn_loss_item=0
     loss_u=0
     val_loss        = 0
     val_f_score     = 0
@@ -37,28 +49,29 @@ def fit_one_epoch(model_train, model,model_train_unlabel,ema_model, loss_history
         print('Start Train')
         pbar = tqdm(total=epoch_step,desc=f'Epoch {epoch + 1}/{Epoch}',postfix=dict,mininterval=0.3)
     dice_loss = DiceLoss(num_classes)
-    for iteration, ((imgs_label, pngs, labels),imgs_unlabel) in enumerate(zip(gen,gen_unlabel)):
-        if iteration >= epoch_step: 
+    criterion_u = nn.CrossEntropyLoss().cuda(local_rank)
+    # for iteration, ((imgs_label, pngs, labels),imgs_unlabel) in enumerate(zip(cycle(gen),gen_unlabel)):
+    for iteration, ((imgs_label, pngs, labels),batch) in enumerate(zip(gen,gen_unlabel)):
+        if iteration >= epoch_step:
             break
-        imgs_unlabel = imgs_unlabel
+        imgs_unlabel = batch
         with torch.no_grad():
             weights = torch.from_numpy(cls_weights)
             if cuda:
                 imgs_unlabel_s = SA(imgs_unlabel, imgs_label)
                 imgs_label = imgs_label.cuda(local_rank)
                 imgs_unlabel    = imgs_unlabel.cuda(local_rank)
-                imgs_unlabel_s = imgs_unlabel_s.cuda(local_rank)
+                imgs_unlabel_s =imgs_unlabel_s.cuda(local_rank)
                 pngs = pngs.cuda(local_rank)
                 labels = labels.cuda(local_rank)
                 weights = weights.cuda(local_rank)
+
         #----------------------#
         #   清零梯度
         #----------------------#
         optimizer.zero_grad()
         if fp16:
-            # ----------------------#
-            #
-            # ----------------------#
+
             model_train.train()
             model_train_unlabel.train()
             num_lb, num_ulb = imgs_label.shape[0], imgs_unlabel_s.shape[0]
@@ -75,17 +88,18 @@ def fit_one_epoch(model_train, model,model_train_unlabel,ema_model, loss_history
             if dice_loss:
                 main_dice = Dice_loss(outputs_label, labels)
                 suloss      = suloss + main_dice
-
-            ema_inputs = imgs_label
+            # ----------------------#
+            #   一致性损失函数
+            # ----------------------#
+            ema_inputs = imgs_unlabel
             with torch.no_grad():
                 ema_output = model_train_unlabel(ema_inputs)
-            consistency_loss = softmax_mse_loss(
-                outputs_unlabel, ema_output)
-            ##########################
+            consistency_loss = F.huber_loss(
+                outputs_unlabel, ema_output, delta=1.0)
             #----------------------#
             #   计算损失
             #----------------------#
-            loss = suloss +consistency_loss
+            loss = suloss + consistency_loss
             #----------------------#
             #   反向传播
             #----------------------#
@@ -98,6 +112,7 @@ def fit_one_epoch(model_train, model,model_train_unlabel,ema_model, loss_history
             print('else')
         total_loss      += loss.item()
         suloss_item  += suloss.item()
+        consistency_loss_item+=consistency_loss.item()
         if local_rank == 0:
             pbar.set_postfix(**{'total_loss': total_loss / (iteration + 1),
                                 'lr'        : get_lr(optimizer)})
@@ -155,8 +170,10 @@ def fit_one_epoch(model_train, model,model_train_unlabel,ema_model, loss_history
         pbar.close()
         print('Finish Validation')
         loss_history.append_loss(epoch + 1, total_loss / epoch_step, val_loss / epoch_step_val)
+        # eval_callback.on_epoch_end(epoch + 1, model_train)
         print('Epoch:'+ str(epoch + 1) + '/' + str(Epoch))
-        print('su Loss: %.6f ||u Loss: %.6f || Total Loss: %.6f ||Val Loss: %.3f ' % (suloss_item / epoch_step, loss_u / epoch_step, total_loss / epoch_step, val_loss / epoch_step_val))
+        print('su Loss: %.6f ||u Loss: %.6f ||consistency Loss: %.6f || Total Loss: %.6f ||Val Loss: %.3f ' % (suloss_item / epoch_step, loss_u / epoch_step, consistency_loss_item / epoch_step, total_loss / epoch_step, val_loss / epoch_step_val))
+
 
         # -----------------------------------------------#
         #   保存权值
