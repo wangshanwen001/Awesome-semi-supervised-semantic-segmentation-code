@@ -70,14 +70,10 @@ def fit_one_epoch(model_train, model,model_train_unlabel,ema_model, loss_history
     args = {
         'threshold': 0.95,  # 置信度阈值
         'eps_uni': 0.02,  # 置信度阈值
-        'threshold_warmup': 0.8,  # 预热阶段的阈值
-        'warm_up': 5,  # 预热轮数
-        'ramp_up': 50,  # 阈值提升的轮数
         'align_alpha': 0.9,  # 类别分布对齐参数
         'lambda_u': 1.0,  # 无监督损失权重
         'lambda_c': 0.01,  # yicixing shunshi quanzhong
         'temperature':0.5,
-        'print_freq': 50,  # 打印频率
     }
     if local_rank == 0:
         print('Start Train')
