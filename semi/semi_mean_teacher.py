@@ -76,7 +76,7 @@ def fit_one_epoch(model_train, model,model_train_unlabel,ema_model, loss_history
                 main_dice = Dice_loss(outputs_label, labels)
                 suloss      = suloss + main_dice
 
-            ema_inputs = SA(imgs_unlabel, imgs_label)
+            ema_inputs = imgs_label
             with torch.no_grad():
                 ema_output = model_train_unlabel(ema_inputs)
             consistency_loss = softmax_mse_loss(
