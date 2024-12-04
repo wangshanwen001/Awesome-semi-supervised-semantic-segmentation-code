@@ -9,6 +9,23 @@ from torch.nn import functional as F
 from torch import  nn
 from utils.dataloader_unlabel import SA
 
+def update_ema_variables(model, ema_model, alpha, global_step):
+    alpha = min(1 - 1 / (global_step + 1), alpha)
+    for ema_param, param in zip(ema_model.parameters(), model.parameters()):
+        ema_param.data.mul_(alpha).add_(param.data, alpha=1 - alpha)
+
+def sigmoid_rampup(current, rampup_length):
+    """Exponential rampup from https://arxiv.org/abs/1610.02242"""
+    if rampup_length == 0:
+        return 1.0
+    else:
+        current = np.clip(current, 0.0, rampup_length)
+        phase = 1.0 - current / rampup_length
+        return float(np.exp(-5.0 * phase * phase))
+
+def get_current_consistency_weight(epoch):
+    return 3 * sigmoid_rampup(epoch, 150)
+
 def fit_one_epoch(model_train, model,model_train_unlabel,ema_model, loss_history, eval_callback, optimizer, epoch, epoch_step, epoch_step_val,gen, gen_unlabel,gen_val, Epoch, cuda, dice_loss, focal_loss, cls_weights, num_classes, \
     fp16, scaler, save_period, save_dir, local_rank=0):
     total_loss      = 0
@@ -81,6 +98,7 @@ def fit_one_epoch(model_train, model,model_train_unlabel,ema_model, loss_history
             #----------------------#
             loss.backward()
             optimizer.step()
+            update_ema_variables(model, ema_model, 0.99, epoch)
 
 
         else:
