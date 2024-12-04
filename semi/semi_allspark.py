@@ -41,8 +41,11 @@ def fit_one_epoch(model_train, model,model_train_unlabel,ema_model, loss_history
                 model_train.module.set_pseudo_prob_map(pred_u_pseudo)
                 pseudo_label = pred_u_pseudo.argmax(dim=1)
                 model_train.module.set_pseudo_label(pseudo_label)
+              
                 ###########开启Allspark##############
                 model_train.module.set_allspark()
+                #####################################
+      
         #----------------------#
         #   清零梯度
         #----------------------#
@@ -96,8 +99,11 @@ def fit_one_epoch(model_train, model,model_train_unlabel,ema_model, loss_history
         print('Start Validation')
         pbar = tqdm(total=epoch_step_val, desc=f'Epoch {epoch + 1}/{Epoch}', postfix=dict, mininterval=0.3)
     model_train.eval()
+      
     ###########关闭Allspark##############
     model_train.module.set_allspark()
+    #####################################
+      
     for iteration, batch in enumerate(gen_val):
         if iteration >= epoch_step_val:
             break
