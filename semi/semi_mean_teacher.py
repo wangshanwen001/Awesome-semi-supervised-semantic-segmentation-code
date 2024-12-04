@@ -51,13 +51,6 @@ def fit_one_epoch(model_train, model,model_train_unlabel,ema_model, loss_history
                 pngs = pngs.cuda(local_rank)
                 labels = labels.cuda(local_rank)
                 weights = weights.cuda(local_rank)
-
-                model_train.eval()
-                pred_u_pseudo = model_train(imgs_unlabel)
-                pred_u_pseudo = pred_u_pseudo.detach()
-                model_train.module.set_pseudo_prob_map(pred_u_pseudo)
-                pseudo_label = pred_u_pseudo.argmax(dim=1)
-                model_train.module.set_pseudo_label(pseudo_label)
         #----------------------#
         #   清零梯度
         #----------------------#
