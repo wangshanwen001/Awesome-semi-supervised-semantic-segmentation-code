@@ -68,7 +68,7 @@ def fit_one_epoch(model_train, model,model_train_unlabel,ema_model, loss_history
                 main_dice = Dice_loss(outputs_label, labels)
                 suloss      = suloss + main_dice
 
-                # 使用弱增强视图生成伪标签
+            # 使用弱增强视图生成伪标签
             with torch.no_grad():
                 logits_weak = model(imgs_unlabel)
                 pseudo_probs = torch.softmax(logits_weak.detach(), dim=1)
