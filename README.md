@@ -17,8 +17,6 @@ This repository is intended to provide a convenient learning repository for novi
 
 ### Dataset
 
-Please modify your dataset path in train.py
-
 ```
 ├── [Your Dataset Path]
     ├── JPEGImages
@@ -28,7 +26,10 @@ Please modify your dataset path in train.py
     		└──split.txt
     		
 ```
-
+Please modify your dataset path in train.py
+``
+Dataset_path  = 'YourDataset'
+`` 
 
 ## Ongoing update... ...
 
