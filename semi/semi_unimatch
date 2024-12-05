@@ -45,7 +45,7 @@ class AverageMeter(object):
 
 def apply_uniperb(images, eps):
     """
-    应用UniPerb扰动（注意原文只用了0.5的dropout，本版实现中也有，这里是测试其他扰动对UniPerd的效果，if遵循原文可以删去）
+    应用UniPerb扰动（注意原文只用了0.5的dropout，这里是测试其他扰动对UniPerd的效果，if遵循原文可以改为dropout）
     Args:
         images: 输入图像
         eps: 扰动大小
@@ -148,8 +148,6 @@ def fit_one_epoch(model_train, model,model_train_unlabel,ema_model, loss_history
                 max_probs, targets_u = torch.max(pseudo_labels, dim=1)
 
                 pseudo_logits_p = logits_weak1_p
-                
-                # UniPerb 扰动实现 dropout
                 pseudo_labels_p = torch.softmax(pseudo_logits_p.detach() / args['temperature'], dim=1)
                 max_probs_p, targets_u_p = torch.max(pseudo_labels_p, dim=1)
 
