@@ -8,7 +8,7 @@ import torch.distributed as dist
 import torch.optim as optim
 from torch.utils.data import DataLoader
 
-from nets.deeplabv3_plus import DeepLab
+from nets.deeplabv3_plus_allspark import DeepLab
 from nets.deeplabv3_training import (get_lr_scheduler, set_optimizer_lr,
                                      weights_init)
 from utils.callbacks import LossHistory, EvalCallback
@@ -16,7 +16,8 @@ from utils.dataloader_unlabel import  DeeplabDatasetUnlabel, deeplab_dataset_col
 from utils.dataloader import DeeplabDataset, deeplab_dataset_collate
 from utils.utils import show_config
 
-from semi.semi_unimatch import fit_one_epoch
+# from semi.semi_unimatch import fit_one_epoch
+from semi.semi_mean_teacher import fit_one_epoch
 
 if __name__ == "__main__":
 
@@ -72,7 +73,7 @@ if __name__ == "__main__":
 
     eval_period         = 5
 
-    VOCdevkit_path  = 'VOCdevkit'
+    Dataset_path  = 'VOCdevkit'
 
     dice_loss       = False
 
@@ -161,11 +162,11 @@ if __name__ == "__main__":
             model_train_unlabel = model_train_unlabel.cuda()
     
 
-    with open(os.path.join(VOCdevkit_path, "VOC2007/ImageSets/Segmentation/train.txt"),"r") as f:
+    with open(os.path.join(Dataset_path, "ImageSets/Segmentation/train.txt"),"r") as f:
         trainall_lines = f.readlines()
-    with open(os.path.join(VOCdevkit_path, "VOC2007/ImageSets/Segmentation/train_20%.txt"),"r") as f:
+    with open(os.path.join(Dataset_path, "ImageSets/Segmentation/train_20%.txt"),"r") as f:
         train_lines = f.readlines()
-    with open(os.path.join(VOCdevkit_path, "VOC2007/ImageSets/Segmentation/val.txt"),"r") as f:
+    with open(os.path.join(Dataset_path, "ImageSets/Segmentation/val.txt"),"r") as f:
         val_lines = f.readlines()
 
     num_train   = len(train_lines)
@@ -224,9 +225,9 @@ if __name__ == "__main__":
         if epoch_step == 0 or epoch_step_val == 0:
             raise ValueError("数据集过小，无法继续进行训练，请扩充数据集。")
 
-        train_dataset   = DeeplabDataset(train_lines, input_shape, num_classes, True, VOCdevkit_path)
-        val_dataset     = DeeplabDataset(val_lines, input_shape, num_classes, False, VOCdevkit_path)
-        train_unlabel_dataset = DeeplabDatasetUnlabel(train_unlabel_lines, input_shape, num_classes, True, VOCdevkit_path)
+        train_dataset   = DeeplabDataset(train_lines, input_shape, num_classes, True, Dataset_path)
+        val_dataset     = DeeplabDataset(val_lines, input_shape, num_classes, False, Dataset_path)
+        train_unlabel_dataset = DeeplabDatasetUnlabel(train_unlabel_lines, input_shape, num_classes, True, Dataset_path)
 
         if distributed:
             train_sampler   = torch.utils.data.distributed.DistributedSampler(train_dataset, shuffle=True,)
@@ -252,7 +253,7 @@ if __name__ == "__main__":
 
 
         if local_rank == 0:
-            eval_callback   = EvalCallback(model, input_shape, num_classes, val_lines, VOCdevkit_path, log_dir, Cuda, \
+            eval_callback   = EvalCallback(model, input_shape, num_classes, val_lines, Dataset_path, log_dir, Cuda, \
                                             eval_flag=eval_flag, period=eval_period)
         else:
             eval_callback   = None
