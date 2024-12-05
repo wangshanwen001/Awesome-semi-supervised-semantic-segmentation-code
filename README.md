@@ -21,8 +21,8 @@ Please modify your dataset path in train.py
     ├── JPEGImages
     └── SegmentationClass
     └── ImageSets
-    		└──Segmentation
-    				└──split.txt
+    	└──Segmentation
+    		└──split.txt
     		
 ```
 
