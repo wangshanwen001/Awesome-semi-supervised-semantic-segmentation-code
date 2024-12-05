@@ -45,7 +45,7 @@ class AverageMeter(object):
 
 def apply_uniperb(images, eps):
     """
-    应用UniPerb扰动
+    应用UniPerb扰动（注意原文只用了0.5的dropout，本版实现中也有，这里是测试其他扰动对UniPerd的效果，if遵循原文可以删去）
     Args:
         images: 输入图像
         eps: 扰动大小
@@ -99,12 +99,6 @@ def fit_one_epoch(model_train, model,model_train_unlabel,ema_model, loss_history
                 labels = labels.cuda(local_rank)
                 weights = weights.cuda(local_rank)
 
-                model_train.eval()
-                pred_u_pseudo = model_train(imgs_unlabel)
-                pred_u_pseudo = pred_u_pseudo.detach()
-                model_train.module.set_pseudo_prob_map(pred_u_pseudo)
-                pseudo_label = pred_u_pseudo.argmax(dim=1)
-                model_train.module.set_pseudo_label(pseudo_label)
         #----------------------#
         #   清零梯度
         #----------------------#
@@ -131,49 +125,38 @@ def fit_one_epoch(model_train, model,model_train_unlabel,ema_model, loss_history
                 suloss      = suloss + main_dice
 
             # ============= 双流扰动的核心实现 =============
-            # 1. 弱扰动 - 用于生成伪标签
-            imgs_unlabel_weak1 = imgs_unlabel  # 第一个弱增强视图
-            imgs_unlabel_weak2 = imgs_unlabel +torch.clamp(torch.randn_like(imgs_unlabel) * 0.1, -0.2, 0.2) # 第二个弱增强视图
+            # 弱扰动 - 用于生成伪标签
+            imgs_unlabel_weak1 = imgs_unlabel
             imgs_unlabel_weak1 = imgs_unlabel_weak1.cuda(local_rank)
-            imgs_unlabel_weak2 = imgs_unlabel_weak2.cuda(local_rank)
-             # 2. 强扰动 - 用于学习
-            imgs_unlabel_strong1, lam  = cutmix_images(imgs_unlabel, imgs_label, alpha=1.0)  # 第一个强增强视图
-            imgs_unlabel_strong2, lam  = cutmix_images(imgs_unlabel, imgs_label, alpha=1.0)  # 第二个强增强视图
+             # 强扰动 - 用于学习
+            imgs_unlabel_strong1  = SA(imgs_unlabel, imgs_label)
+            imgs_unlabel_strong2  = SA(imgs_unlabel, imgs_label)
             imgs_unlabel_strong1 = imgs_unlabel_strong1.cuda(local_rank)
             imgs_unlabel_strong2 = imgs_unlabel_strong2.cuda(local_rank)
             # batch_size = imgs_label.shape[0]
-            # 3.  UniPerb 扰动实现
+            # UniPerb 扰动实现
             eps_uni = args['eps_uni']  # UniPerb扰动大小
             imgs_unlabel_weak1_uniperb = apply_uniperb(imgs_unlabel_weak1, eps_uni)
-            imgs_unlabel_weak2_uniperb = apply_uniperb(imgs_unlabel_weak2, eps_uni)
             with torch.no_grad():
                 # 弱扰动流的预测
                 logits_weak1 = model_train(imgs_unlabel_weak1)
-                logits_weak2 = model_train(imgs_unlabel_weak2)
-
                 logits_weak1_p = model_train(imgs_unlabel_weak1_uniperb)
-                logits_weak2_p = model_train(imgs_unlabel_weak2_uniperb)
 
                  # 集成两个弱扰动预测
-                pseudo_logits = (logits_weak1 + logits_weak2) / 2
-                pseudo_labels = torch.softmax(pseudo_logits.detach() / args['temperature'], dim=1)
+                pseudo_logits = logits_weak1
+                pseudo_labels = torch.softmax(pseudo_logits.detach(), dim=1)
                 max_probs, targets_u = torch.max(pseudo_labels, dim=1)
 
-                pseudo_logits_p = (logits_weak1_p + logits_weak2_p) / 2
+                pseudo_logits_p = logits_weak1_p
+                
+                # UniPerb 扰动实现 dropout
                 pseudo_labels_p = torch.softmax(pseudo_logits_p.detach() / args['temperature'], dim=1)
                 max_probs_p, targets_u_p = torch.max(pseudo_labels_p, dim=1)
-
-                # 类别分布对齐
-                # probs_avg = torch.mean(pseudo_labels, dim=0)
-                # exp_probs = torch.mean(torch.softmax(logits_label, dim=1), dim=0)
-                # class_alignment = (1 - args['align_alpha']) * probs_avg + args['align_alpha'] * exp_probs
 
                 # 自适应阈值
                 confidence_threshold = get_adaptive_threshold(epoch, args)
                 mask = max_probs.ge(confidence_threshold).float()
 
-                confidence_threshold_p = get_adaptive_threshold(epoch, args)
-                mask_p = max_probs_p.ge(confidence_threshold_p).float()
 
             # 强扰动流的预测
             logits_strong1 = model_train(imgs_unlabel_strong1)
@@ -182,33 +165,26 @@ def fit_one_epoch(model_train, model,model_train_unlabel,ema_model, loss_history
             # 计算强扰动流与伪标签之间的一致性损失
             loss_unsup_strong1 = criterion_u(logits_strong1, targets_u)
             loss_unsup_strong2 = criterion_u(logits_strong2, targets_u)
+            # 计算弱扰动流与f_p伪标签之间的一致性损失
+            loss_unsup_w_p = criterion_u(logits_weak1, targets_u_p)
 
-            loss_unsup_strong1_p = criterion_u(logits_strong1, targets_u_p)
-            loss_unsup_strong2_p = criterion_u(logits_strong2, targets_u_p)
-
-            # 双流之间的一致性损失
+            # strong之间的一致性损失（这是原文没有的，实测加上效果会稍微更好一点点）
             loss_consistency = F.mse_loss(
                     torch.softmax(logits_strong1, dim=1),
                     torch.softmax(logits_strong2, dim=1)
-                )
+            )
 
             # 总的无监督损失
             loss_unsupervised = (
-                    (loss_unsup_strong1 + loss_unsup_strong2) * mask / 2 +
+                    (loss_unsup_strong1 + loss_unsup_strong2) * mask  +loss_unsup_w_p*mask+
                     args['lambda_c'] * loss_consistency
             ).mean()
 
-            loss_unsupervised_p = (
-                (loss_unsup_strong1_p + loss_unsup_strong2_p) * mask_p / 2 +
-                args['lambda_c'] * loss_consistency
-            ).mean()
-
-            ##########################
 
             #----------------------#
             #   计算损失
             #----------------------#
-            loss = suloss +args['lambda_u'] * loss_unsupervised+args['lambda_u'] *loss_unsupervised_p
+            loss = suloss +args['lambda_u'] * loss_unsupervised
             #----------------------#
             #   反向传播
             #----------------------#
