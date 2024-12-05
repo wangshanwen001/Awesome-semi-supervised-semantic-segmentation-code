@@ -33,7 +33,7 @@ class DeeplabDatasetUnlabel(Dataset):
         #   从文件中读取图像
         #-------------------------------#
         # jpg         = Image.open(os.path.join(os.path.join(self.dataset_path, "VOC2007/JPEGImages_Unlabel"), name + ".jpg"))
-        jpg = Image.open(os.path.join(os.path.join(self.dataset_path, "VOC2007/JPEGImages"), name + ".jpg"))
+        jpg = Image.open(os.path.join(os.path.join(self.dataset_path, "JPEGImages"), name + ".jpg"))
         #-------------------------------#
         #   数据增强
         #-------------------------------#
@@ -226,4 +226,6 @@ def SA(images1, images2):
         return mixed_images
     else:
         return cutout_images(images1)
+
+
 # Example usage
