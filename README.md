@@ -12,6 +12,20 @@ This is an easy-to-use, modular and extensible code repository for semi-supervis
 |     Unimatch      | [CVPR 2023][Revisiting Weak-to-Strong Consistency in Semi-Supervised Semantic Segmentation](https://openaccess.thecvf.com/content/CVPR2023/html/Yang_Revisiting_Weak-to-Strong_Consistency_in_Semi-Supervised_Semantic_Segmentation_CVPR_2023_paper.html)                                                   |            
 |     Allspark| [CVPR 2024][AllSpark: Reborn Labeled Features from Unlabeled in Transformer for Semi-Supervised Semantic Segmentation](https://openaccess.thecvf.com/content/CVPR2024/html/Wang_AllSpark_Reborn_Labeled_Features_from_Unlabeled_in_Transformer_for_Semi-Supervised_CVPR_2024_paper.html)                                                   |          
                                              
+### Dataset
+
+Please modify your dataset path in train.py
+
+```
+├── [Your Dataset Path]
+    ├── JPEGImages
+    └── SegmentationClass
+    └── ImageSets
+    		└──Segmentation
+    				└──split.txt
+    		
+```
+
 
 ## Ongoing update... ...
 
