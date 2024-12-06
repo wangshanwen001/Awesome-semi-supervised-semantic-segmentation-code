@@ -13,7 +13,7 @@ This is an easy-to-use, modular and extensible code repository for semi-supervis
 |     Allspark| [CVPR 2024][AllSpark: Reborn Labeled Features from Unlabeled in Transformer for Semi-Supervised Semantic Segmentation](https://openaccess.thecvf.com/content/CVPR2024/html/Wang_AllSpark_Reborn_Labeled_Features_from_Unlabeled_in_Transformer_for_Semi-Supervised_CVPR_2024_paper.html)                                                   |          
                                              
 ## Notice
-This repository is intended to provide a convenient learning repository for novice learners, and **some of the implementation details may not be consistent with the original author**. If you need to write the experimental data of the paper, **please take the source repository of each paper as the standard**. Please contact me if there are any errors in the implemented code.
+This repository is intended to provide a convenient learning repository for novice learners, and **some of the implementation details may not be consistent with the original author**. If you need to write the experimental data of the paper, **please take the source repository of each paper as the standard**. Contact me if there are any errors in the implemented code.
 
 ### Dataset
 
@@ -26,7 +26,7 @@ This repository is intended to provide a convenient learning repository for novi
     		└──split.txt
     		
 ```
-Please modify your dataset path in train.py
+Modify your dataset path in train.py
 ``
 Dataset_path  = 'YourDataset'
 `` 
