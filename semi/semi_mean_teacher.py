@@ -49,8 +49,6 @@ def fit_one_epoch(model_train, model,model_train_unlabel,ema_model, loss_history
         print('Start Train')
         pbar = tqdm(total=epoch_step,desc=f'Epoch {epoch + 1}/{Epoch}',postfix=dict,mininterval=0.3)
     dice_loss = DiceLoss(num_classes)
-    criterion_u = nn.CrossEntropyLoss().cuda(local_rank)
-    # for iteration, ((imgs_label, pngs, labels),imgs_unlabel) in enumerate(zip(cycle(gen),gen_unlabel)):
     for iteration, ((imgs_label, pngs, labels),batch) in enumerate(zip(gen,gen_unlabel)):
         if iteration >= epoch_step:
             break
@@ -73,7 +71,6 @@ def fit_one_epoch(model_train, model,model_train_unlabel,ema_model, loss_history
         if fp16:
 
             model_train.train()
-            model_train_unlabel.train()
             num_lb, num_ulb = imgs_label.shape[0], imgs_unlabel_s.shape[0]
             outputs_total = model_train(torch.cat((imgs_label, imgs_unlabel_s)))
             outputs_label, outputs_unlabel = outputs_total.split([num_lb, num_ulb])
@@ -93,7 +90,7 @@ def fit_one_epoch(model_train, model,model_train_unlabel,ema_model, loss_history
             # ----------------------#
             ema_inputs = imgs_unlabel
             with torch.no_grad():
-                ema_output = model_train_unlabel(ema_inputs)
+                ema_output = ema_model(ema_inputs)
             consistency_loss = F.huber_loss(
                 outputs_unlabel, ema_output, delta=1.0)
             #----------------------#
@@ -105,7 +102,7 @@ def fit_one_epoch(model_train, model,model_train_unlabel,ema_model, loss_history
             #----------------------#
             loss.backward()
             optimizer.step()
-            update_ema_variables(model, ema_model, 0.99, epoch)
+            update_ema_variables(model_train, ema_model, 0.99, epoch)
 
 
         else:
