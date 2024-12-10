@@ -8,7 +8,7 @@ import torch.distributed as dist
 import torch.optim as optim
 from torch.utils.data import DataLoader
 
-from nets.deeplabv3_plus_allspark import DeepLab
+from nets.deeplabv3_plus_unimatch import DeepLab
 from nets.deeplabv3_training import (get_lr_scheduler, set_optimizer_lr,
                                      weights_init)
 from utils.callbacks import LossHistory, EvalCallback
@@ -16,7 +16,8 @@ from utils.dataloader_unlabel import  DeeplabDatasetUnlabel, deeplab_dataset_col
 from utils.dataloader import DeeplabDataset, deeplab_dataset_collate
 from utils.utils import show_config
 
-from semi.semi_unimatch import fit_one_epoch
+# from semi.semi_unimatch import fit_one_epoch
+from semi.semi_unimatch_v2 import fit_one_epoch
 # from semi.semi_mean_teacher import fit_one_epoch
 
 if __name__ == "__main__":
