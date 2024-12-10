@@ -171,7 +171,7 @@ def fit_one_epoch(model_train, model, model_train_unlabel, ema_model, loss_histo
             # 强扰动流的预测
             logits_strong1,outputs_encoder_s1, low_level_features_s1 = model_train(imgs_unlabel_strong1)
             logits_strong2,outputs_encoder_s2, low_level_features_s2= model_train(imgs_unlabel_strong2)
-            # UniPerb扰动
+            # complementary Dropout
             logits_strong1, logits_strong2 = complementary_dropout_for_two_inputs(logits_strong1, logits_strong2, p=0.5)
 
             # 计算强扰动流与伪标签之间的一致性损失
