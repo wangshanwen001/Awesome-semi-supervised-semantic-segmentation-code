@@ -67,6 +67,7 @@ def fit_one_epoch(model_train, model,model_train_unlabel,ema_model, loss_history
     loss_u=0
     val_loss        = 0
     val_f_score     = 0
+    dropout = nn.Dropout(p=0.5)
     args = {
         'threshold': 0.95,  # 置信度阈值
         'eps_uni': 0.02,  # 置信度阈值
@@ -137,6 +138,7 @@ def fit_one_epoch(model_train, model,model_train_unlabel,ema_model, loss_history
             # UniPerb 扰动实现
             eps_uni = args['eps_uni']  # UniPerb扰动大小
             imgs_unlabel_weak1_uniperb = apply_uniperb(imgs_unlabel_weak1, eps_uni)
+            # imgs_unlabel_weak1_uniperb = dropout(imgs_unlabel_weak1) #dropout
             with torch.no_grad():
                 # 弱扰动流的预测
                 logits_weak1 = model_train(imgs_unlabel_weak1)
@@ -194,8 +196,6 @@ def fit_one_epoch(model_train, model,model_train_unlabel,ema_model, loss_history
             print('else')
         total_loss      += loss.item()
         suloss_item  += suloss.item()
-        # consistency_loss_item+=consistency_loss.item()
-        # attn_loss_item+=attn_loss.item()
         if local_rank == 0:
             pbar.set_postfix(**{'total_loss': total_loss / (iteration + 1),
                                 'lr'        : get_lr(optimizer)})
@@ -253,7 +253,6 @@ def fit_one_epoch(model_train, model,model_train_unlabel,ema_model, loss_history
         pbar.close()
         print('Finish Validation')
         loss_history.append_loss(epoch + 1, total_loss / epoch_step, val_loss / epoch_step_val)
-        # eval_callback.on_epoch_end(epoch + 1, model_train)
         print('Epoch:'+ str(epoch + 1) + '/' + str(Epoch))
         print('su Loss: %.6f ||u Loss: %.6f || Total Loss: %.6f ||Val Loss: %.3f ' % (suloss_item / epoch_step, loss_u / epoch_step, total_loss / epoch_step, val_loss / epoch_step_val))
 
