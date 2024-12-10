@@ -172,7 +172,10 @@ def fit_one_epoch(model_train, model, model_train_unlabel, ema_model, loss_histo
             logits_strong1,outputs_encoder_s1, low_level_features_s1 = model_train(imgs_unlabel_strong1)
             logits_strong2,outputs_encoder_s2, low_level_features_s2= model_train(imgs_unlabel_strong2)
             # complementary Dropout
-            logits_strong1, logits_strong2 = complementary_dropout_for_two_inputs(logits_strong1, logits_strong2, p=0.5)
+            outputs_encoder_s1, outputs_encoder_s2 = complementary_dropout_for_two_inputs(outputs_encoder_s1, outputs_encoder_s2, p=0.5)
+            logits_strong1 = model_train.module.decoder(low_level_features_s1, outputs_encoder_s1)
+            logits_strong2 = model_train.module.decoder(low_level_features_s2, outputs_encoder_s2)
+
 
             # 计算强扰动流与伪标签之间的一致性损失
             loss_unsup_strong1 = criterion_u(logits_strong1, targets_u)
