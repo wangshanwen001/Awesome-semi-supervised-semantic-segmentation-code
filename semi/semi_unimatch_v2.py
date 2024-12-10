@@ -17,7 +17,10 @@ from torch import nn
 import torchvision.transforms as transforms
 from utils.dataloader_unlabel import cutmix_images, SA
 
-
+def update_ema_variables(model, ema_model, alpha, global_step):
+    alpha = min(1 - 1 / (global_step + 1), alpha)
+    for ema_param, param in zip(ema_model.parameters(), model.parameters()):
+        ema_param.data.mul_(alpha).add_(param.data, alpha=1 - alpha)
 def get_adaptive_threshold(epoch, args):
     """计算自适应阈值"""
     if epoch < args['warm_up']:
@@ -202,6 +205,7 @@ def fit_one_epoch(model_train, model, model_train_unlabel, ema_model, loss_histo
             # ----------------------#
             loss.backward()
             optimizer.step()
+            update_ema_variables(model_train, ema_model, 0.99, epoch)
 
 
         else:
