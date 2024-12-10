@@ -11,7 +11,7 @@ This is an easy-to-use, modular and extensible code repository for semi-supervis
 | Fixmatch | [NeurIPS 2020][FixMatch: Simplifying Semi-Supervised Learning with Consistency and Confidence](https://proceedings.neurips.cc/paper/2020/hash/06964dce9addb1c5cb5d6e3d9838f733-Abstract.html)                    |
 |     Unimatch      | [CVPR 2023][Revisiting Weak-to-Strong Consistency in Semi-Supervised Semantic Segmentation](https://openaccess.thecvf.com/content/CVPR2023/html/Yang_Revisiting_Weak-to-Strong_Consistency_in_Semi-Supervised_Semantic_Segmentation_CVPR_2023_paper.html)                                                   |            
 |     Allspark| [CVPR 2024][AllSpark: Reborn Labeled Features from Unlabeled in Transformer for Semi-Supervised Semantic Segmentation](https://openaccess.thecvf.com/content/CVPR2024/html/Wang_AllSpark_Reborn_Labeled_Features_from_Unlabeled_in_Transformer_for_Semi-Supervised_CVPR_2024_paper.html)                                                   |          
-|     UnimatchV2| [Arxiv 2024][UniMatch V2: Pushing the Limit of Semi-Supervised Semantic Segmentation]([https://openaccess.thecvf.com/content/CVPR2024/html/Wang_AllSpark_Reborn_Labeled_Features_from_Unlabeled_in_Transformer_for_Semi-Supervised_CVPR_2024_paper.html](https://arxiv.org/abs/2410.10777))                                                   |          
+|     UnimatchV2| [Arxiv 2024][UniMatch V2: Pushing the Limit of Semi-Supervised Semantic Segmentation](https://arxiv.org/abs/2410.10777))                                                   |          
                                         
 
 
